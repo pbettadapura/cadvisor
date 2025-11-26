@@ -2,7 +2,7 @@ module github.com/google/cadvisor/cmd
 
 go 1.23.0
 
-toolchain go1.24.9
+toolchain go1.24.10
 
 // Record that the cmd module requires the cadvisor library module.
 // The github.com/google/cadvisor/cmd module is built using the Makefile

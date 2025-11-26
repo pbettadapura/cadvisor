@@ -2,7 +2,7 @@ module github.com/google/cadvisor
 
 go 1.23.0
 
-toolchain go1.24.9
+toolchain go1.24.10
 
 require (
 	cloud.google.com/go/compute/metadata v0.7.0
