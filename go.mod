@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30
 	github.com/blang/semver/v4 v4.0.0
-	github.com/containerd/containerd/api v1.9.0
+	github.com/containerd/containerd/api v1.10.0
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/errdefs/pkg v0.3.0
 	github.com/containerd/ttrpc v1.2.7
