@@ -22,7 +22,7 @@ jobs:
 
       - name: Run container + scrape /metrics
         run: |
-          set -e
+          set -euo pipefail
           # If anything fails, print logs before exiting.
           cleanup() {
             docker logs cadvisor-smoke 2>/dev/null || true
