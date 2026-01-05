@@ -36,7 +36,7 @@ jobs:
             -v /var/run:/var/run:ro \
             -v /sys:/sys:ro \
             -v /var/lib/docker/:/var/lib/docker:ro \
-            "cadvisor-pr:${GITHUB_SHA}"
+            "docker.io/library/cadvisor-pr:${GITHUB_SHA}"
 
           sleep 10
           curl -f http://127.0.0.1:18080/metrics
