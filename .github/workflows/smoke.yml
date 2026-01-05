@@ -18,7 +18,7 @@ jobs:
       - name: Build docker image (make docker)
         run: |
           set -euo pipefail
-          docker build -f deploy/Dockerfile -t cadvisor-ci:${GITHUB_SHA} .
+          docker build -f deploy/Dockerfile -t cadvisor-pr:${GITHUB_SHA} .
 
       - name: Run container + scrape /metrics
         run: |
