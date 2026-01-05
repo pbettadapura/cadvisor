@@ -17,8 +17,8 @@ jobs:
 
       - name: Build docker image (make docker)
         run: |
-          set -e
-          make docker
+          set -euo pipefail
+          docker build -f deploy/Dockerfile -t cadvisor-ci:${GITHUB_SHA} .
 
       - name: Tag built image deterministically
         run: |
