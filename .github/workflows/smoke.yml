@@ -20,13 +20,6 @@ jobs:
           set -euo pipefail
           docker build -f deploy/Dockerfile -t cadvisor-ci:${GITHUB_SHA} .
 
-      - name: Tag built image deterministically
-        run: |
-          set -e
-          IMAGE_ID="$(docker images --quiet cadvisor | head -n 1)"
-          echo "Newest image id: $IMAGE_ID"
-          docker tag "$IMAGE_ID" "cadvisor-pr:${GITHUB_SHA}"
-
       - name: Run container + scrape /metrics
         run: |
           set -e
