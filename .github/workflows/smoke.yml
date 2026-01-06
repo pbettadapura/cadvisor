@@ -40,3 +40,19 @@ jobs:
 
           sleep 20
           curl -f http://127.0.0.1:18080/metrics
+
+      - name: Install Trivy (official installer)
+        run: |
+          set -euo pipefail
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+          | sudo sh -s -- -b /usr/local/bin
+          trivy --version
+
+      - name: Trivy scan
+        run: |
+          set -euo pipefail
+          trivy image prometheus-pr:${GITHUB_SHA} \
+            --scanners vuln \
+            --format table \
+            --no-progress \
+            --exit-code 0
