@@ -51,7 +51,7 @@ jobs:
       - name: Trivy scan
         run: |
           set -euo pipefail
-          trivy image prometheus-pr:${GITHUB_SHA} \
+          trivy image cadvisor-pr:${GITHUB_SHA} \
             --scanners vuln \
             --format table \
             --no-progress \
