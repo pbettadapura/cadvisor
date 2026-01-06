@@ -44,7 +44,7 @@ jobs:
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@v0
         with:
-          image-ref: prometheus-pr:${{ github.sha }}
+          image-ref: cadvisor-pr:${{ github.sha }}
           format: table
           scanners: vuln
           exit-code: '0'
