@@ -19,21 +19,31 @@ jobs:
       - name: Detect current toolchain version
         id: current
         run: |
+          set -euo pipefail
           # Read the toolchain directive from the root go.mod
           CURRENT=$(grep '^toolchain ' go.mod | awk '{print $2}' | sed 's/^go//')
+          if [ -z "${CURRENT}" ]; then
+            echo "::error::No toolchain directive found in go.mod"
+            exit 1
+          fi
           echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
           # Extract major.minor (e.g. 1.25 from 1.25.7)
           MINOR=$(echo "${CURRENT}" | grep -oP '^\d+\.\d+')
+          if [ -z "${MINOR}" ]; then
+            echo "::error::Could not parse major.minor from toolchain version '${CURRENT}'"
+            exit 1
+          fi
           echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
           echo "Current toolchain: go${CURRENT} (series ${MINOR})"
 
       - name: Fetch latest Go patch version
         id: latest
         run: |
+          set -euo pipefail
           MINOR="${{ steps.current.outputs.minor }}"
-          # Query go.dev for all stable releases, find latest in our minor series
+          # Query go.dev for stable releases only, find latest in our minor series
           LATEST=$(curl -sS 'https://go.dev/dl/?mode=json' \
-            | jq -r '.[].version' \
+            | jq -r '.[] | select(.stable == true) | .version' \
             | grep "^go${MINOR}\." \
             | head -1 \
             | sed 's/^go//')
@@ -47,6 +57,7 @@ jobs:
       - name: Check if update is needed
         id: check
         run: |
+          set -euo pipefail
           CURRENT="${{ steps.current.outputs.version }}"
           LATEST="${{ steps.latest.outputs.version }}"
           if [ "${CURRENT}" = "${LATEST}" ]; then
@@ -60,6 +71,7 @@ jobs:
       - name: Update go.mod files
         if: steps.check.outputs.needed == 'true'
         run: |
+          set -euo pipefail
           LATEST="${{ steps.latest.outputs.version }}"
           echo "Updating all go.mod toolchain directives to go${LATEST}"
 
