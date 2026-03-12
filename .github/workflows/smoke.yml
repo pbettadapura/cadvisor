@@ -42,7 +42,7 @@ jobs:
           curl -f http://127.0.0.1:18080/metrics
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.34.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: cadvisor-pr:${{ github.sha }}
           format: "table"
