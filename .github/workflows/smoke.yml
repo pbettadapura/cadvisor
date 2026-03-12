@@ -2,6 +2,9 @@ name: PR smoke (make docker + run)
 
 on:
   pull_request:
+  push:
+    branches:
+      - auto/update-go-toolchain
 
 permissions:
   contents: read
