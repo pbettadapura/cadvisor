@@ -106,3 +106,19 @@ jobs:
 
             Release notes: https://go.dev/doc/devel/release#go${{ steps.latest.outputs.version }}
           labels: dependencies,go
+
+      - name: Re-trigger PR checks
+        if: steps.check.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Wait for PR to be fully created
+          sleep 5
+          PR=$(gh pr list --head auto/update-go-toolchain --json number -q '.[0].number')
+          if [ -n "$PR" ]; then
+            echo "Closing and reopening PR #${PR} to trigger checks"
+            gh pr close "$PR"
+            sleep 2
+            gh pr reopen "$PR"
+          fi
