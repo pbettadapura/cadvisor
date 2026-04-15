@@ -58,7 +58,7 @@ function run_tests() {
     --privileged \
     --cap-add="sys_admin" \
     --entrypoint="" \
-    us-central1-docker.pkg.dev/k8s-staging-test-infra/images/bootstrap:v20251209-855adc2699 \
+    gcr.io/k8s-staging-test-infra/bootstrap:v20251209-855adc2699 \
     bash -c "export DEBIAN_FRONTEND=noninteractive && \
     apt update && \
     apt install -y $PACKAGES && \
