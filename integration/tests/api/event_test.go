@@ -130,7 +130,7 @@ func TestMemoryEventsMaxMetricAfterOom(t *testing.T) {
 	containerID := fm.Docker().Run(
 		framework.DockerRunArgs{
 			Image: "registry.k8s.io/busybox:1.27",
-			Args:  []string{"-m=8M", "--memory-swap=8M"},
+			Args:  []string{"-m=8M", "--memory-swap=8M", "--network=host"},
 		},
 		"sh", "-c", "dd if=/dev/zero of=/tmp/data bs=1M count=100; sleep 60",
 	)
