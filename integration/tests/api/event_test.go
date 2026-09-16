@@ -195,7 +195,7 @@ func TestContainerDeletionExitCode(t *testing.T) {
 			fm := framework.New(t)
 			defer fm.Cleanup()
 
-			containerID := fm.Docker().RunBusybox("sh", "-c", "exit "+strconv.Itoa(tt.exitCode))
+			containerID := fm.Docker().RunBusybox("sh", "-c", "sleep 2; exit "+strconv.Itoa(tt.exitCode))
 
 			err := framework.RetryForDuration(func() error {
 				events, err := fm.Cadvisor().Client().EventStaticInfo("?deletion_events=true&subcontainers=true")
@@ -210,7 +210,7 @@ func TestContainerDeletionExitCode(t *testing.T) {
 							return fmt.Errorf("deletion event data is nil")
 						}
 						if ev.EventData.ContainerDeletion.ExitCode != tt.exitCode {
-							return fmt.Errorf("expected exit code %d, got %d",
+							t.Errorf("expected exit code %d, got %d",
 								tt.exitCode, ev.EventData.ContainerDeletion.ExitCode)
 						}
 						return nil
