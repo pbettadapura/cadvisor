@@ -210,7 +210,7 @@ func TestContainerDeletionExitCode(t *testing.T) {
 							return fmt.Errorf("deletion event data is nil")
 						}
 						if ev.EventData.ContainerDeletion.ExitCode != tt.exitCode {
-							t.Errorf("expected exit code %d, got %d",
+							return fmt.Errorf("expected exit code %d, got %d",
 								tt.exitCode, ev.EventData.ContainerDeletion.ExitCode)
 						}
 						return nil
