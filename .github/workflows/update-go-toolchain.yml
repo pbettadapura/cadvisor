@@ -20,19 +20,22 @@ jobs:
         id: current
         run: |
           set -euo pipefail
-          # Read the toolchain directive from the root go.mod
-          CURRENT=$(grep '^toolchain ' go.mod | awk '{print $2}' | sed 's/^go//')
+          # Prefer the toolchain directive, and fall back to the go directive.
+          CURRENT=$(awk '/^toolchain / { sub(/^go/, "", $2); print $2; exit }' go.mod)
           if [ -z "${CURRENT}" ]; then
-            echo "::error::No toolchain directive found in go.mod"
+            CURRENT=$(awk '/^go / { print $2; exit }' go.mod)
+          fi
+          if [ -z "${CURRENT}" ]; then
+            echo "::error::No toolchain or go directive found in go.mod"
+            exit 1
+          fi
+          if ! [[ "${CURRENT}" =~ ^([0-9]+)\.([0-9]+)(\.[0-9]+)?$ ]]; then
+            echo "::error::Invalid Go version '${CURRENT}' in go.mod"
             exit 1
           fi
           echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
-          # Extract major.minor (e.g. 1.25 from 1.25.7)
-          MINOR=$(echo "${CURRENT}" | grep -oP '^\d+\.\d+')
-          if [ -z "${MINOR}" ]; then
-            echo "::error::Could not parse major.minor from toolchain version '${CURRENT}'"
-            exit 1
-          fi
+          # Extract major.minor (e.g. 1.26 from 1.26.8)
+          MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
           echo "minor=${MINOR}" >> "$GITHUB_OUTPUT"
           echo "Current toolchain: go${CURRENT} (series ${MINOR})"
 
@@ -42,13 +45,21 @@ jobs:
           set -euo pipefail
           MINOR="${{ steps.current.outputs.minor }}"
           # Query go.dev for stable releases only, find latest in our minor series
-          LATEST=$(curl -sS 'https://go.dev/dl/?mode=json' \
-            | jq -r '.[] | select(.stable == true) | .version' \
-            | grep "^go${MINOR}\." \
-            | head -1 \
-            | sed 's/^go//')
+          if ! RELEASES=$(curl -fsSL 'https://go.dev/dl/?mode=json'); then
+            echo "::error::Failed to fetch Go releases"
+            exit 1
+          fi
+          if ! LATEST=$(printf '%s' "${RELEASES}" \
+            | jq -r --arg prefix "go${MINOR}." \
+                '.[] | select(.stable == true and (.version | startswith($prefix))) | .version' \
+            | sort -V \
+            | tail -1 \
+            | sed 's/^go//'); then
+            echo "::error::Failed to parse Go releases"
+            exit 1
+          fi
           if [ -z "${LATEST}" ]; then
-            echo "No release found for series ${MINOR}"
+            echo "::error::No stable release found for series ${MINOR}"
             exit 1
           fi
           echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
@@ -58,13 +69,55 @@ jobs:
         id: check
         run: |
           set -euo pipefail
-          CURRENT="${{ steps.current.outputs.version }}"
+          MINOR="${{ steps.current.outputs.minor }}"
           LATEST="${{ steps.latest.outputs.version }}"
-          if [ "${CURRENT}" = "${LATEST}" ]; then
+          NEEDED=false
+
+          for MODFILE in go.mod cmd/go.mod; do
+            GO_VERSION=$(awk '/^go / { print $2; exit }' "${MODFILE}")
+            TOOLCHAIN=$(awk '/^toolchain / { sub(/^go/, "", $2); print $2; exit }' "${MODFILE}")
+
+            if [ -z "${GO_VERSION}" ]; then
+              echo "::error::No go directive found in ${MODFILE}"
+              exit 1
+            fi
+            if ! [[ "${GO_VERSION}" =~ ^([0-9]+)\.([0-9]+)(\.[0-9]+)?$ ]]; then
+              echo "::error::Invalid Go version '${GO_VERSION}' in ${MODFILE}"
+              exit 1
+            fi
+            GO_MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+            if [ "${GO_MINOR}" != "${MINOR}" ]; then
+              echo "::error::${MODFILE} uses Go series ${GO_MINOR}, expected ${MINOR}"
+              exit 1
+            fi
+
+            if [ -z "${TOOLCHAIN}" ]; then
+              NEEDED=true
+              continue
+            fi
+            if ! [[ "${TOOLCHAIN}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              echo "::error::Invalid toolchain version 'go${TOOLCHAIN}' in ${MODFILE}"
+              exit 1
+            fi
+            TOOLCHAIN_MINOR="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+            if [ "${TOOLCHAIN_MINOR}" != "${MINOR}" ]; then
+              echo "::error::${MODFILE} toolchain uses Go series ${TOOLCHAIN_MINOR}, expected ${MINOR}"
+              exit 1
+            fi
+            if [ "$(printf '%s\n%s\n' "${LATEST}" "${TOOLCHAIN}" | sort -V | tail -1)" != "${LATEST}" ]; then
+              echo "::error::${MODFILE} toolchain go${TOOLCHAIN} is newer than latest stable go${LATEST}"
+              exit 1
+            fi
+            if [ "${TOOLCHAIN}" != "${LATEST}" ]; then
+              NEEDED=true
+            fi
+          done
+
+          if [ "${NEEDED}" = false ]; then
             echo "Already on latest (go${LATEST}), nothing to do."
             echo "needed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "Update available: go${CURRENT} -> go${LATEST}"
+            echo "Toolchain update needed: go${LATEST}"
             echo "needed=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -75,11 +128,17 @@ jobs:
           LATEST="${{ steps.latest.outputs.version }}"
           echo "Updating all go.mod toolchain directives to go${LATEST}"
 
-          # Find every go.mod in the repo that has a toolchain directive
+          # Find every go.mod in the repo and add or update its toolchain directive
           find . -name 'go.mod' -type f | while read -r modfile; do
             if grep -q '^toolchain ' "${modfile}"; then
               echo "  Updating ${modfile}"
               sed -i "s/^toolchain go.*/toolchain go${LATEST}/" "${modfile}"
+            elif grep -q '^go ' "${modfile}"; then
+              echo "  Adding ${modfile}"
+              sed -i "/^go /a toolchain go${LATEST}" "${modfile}"
+            else
+              echo "::error::No go directive found in ${modfile}"
+              exit 1
             fi
           done
 
@@ -99,10 +158,7 @@ jobs:
             **Current:** `go${{ steps.current.outputs.version }}`
             **Latest:**  `go${{ steps.latest.outputs.version }}`
 
-            Updated files:
-            ```
-            find . -name 'go.mod' -exec grep -l '^toolchain ' {} \;
-            ```
+            Updated toolchain directives in all Go modules.
 
             Release notes: https://go.dev/doc/devel/release#go${{ steps.latest.outputs.version }}
           labels: dependencies,go
