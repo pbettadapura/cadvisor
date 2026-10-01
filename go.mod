@@ -28,7 +28,7 @@ require (
 	github.com/prometheus/common v0.64.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sys v0.48.0
-	google.golang.org/grpc v1.83.1
+	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.11
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979
