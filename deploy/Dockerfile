@@ -1,6 +1,6 @@
-FROM registry.hub.docker.com/library/golang:1.26-alpine3.23 AS build
+FROM registry.hub.docker.com/library/golang:1.26.10-alpine3.23 AS build
 
-# Install build depdencies for all supported arches
+# Install build dependencies for all supported arches
 RUN apk --no-cache add bash build-base cmake device-mapper findutils git \
                        libc6-compat linux-headers ndctl-dev pkgconfig python3 thin-provisioning-tools wget zfs && \
     echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
