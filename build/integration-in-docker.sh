@@ -61,7 +61,7 @@ function run_tests() {
     --privileged \
     --cap-add="sys_admin" \
     --entrypoint="" \
-    gcr.io/k8s-staging-test-infra/bootstrap:v20251209-855adc2699 \
+    "${BOOTSTRAP_IMAGE}" \
     bash -c "export DEBIAN_FRONTEND=noninteractive && \
     apt update && \
     apt install -y $PACKAGES && \
@@ -72,6 +72,14 @@ GO_FLAGS=${GO_FLAGS:-"-tags=netgo -race"}
 PACKAGES=${PACKAGES:-"sudo"}
 BUILD_PACKAGES=${BUILD_PACKAGES:-}
 CADVISOR_ARGS=${CADVISOR_ARGS:-}
-GOLANG_VERSION=${GOLANG_VERSION:-"1.25"}
+GOLANG_VERSION=${GOLANG_VERSION:-"1.26"}
 DEBIAN_VERSION=${DEBIAN_VERSION:-"trixie"}
+
+# The staging registry garbage-collects old images, so a pinned tag rots.
+# Discover the newest dated tag instead; set BOOTSTRAP_TAG to pin one.
+BOOTSTRAP_TAG=${BOOTSTRAP_TAG:-$(curl -sSfL https://gcr.io/v2/k8s-staging-test-infra/bootstrap/tags/list \
+  | grep -oE 'v[0-9]{8}-[0-9a-f]+' | sort -ru | head -n1)}
+[ -n "${BOOTSTRAP_TAG}" ] || { echo "Failed to discover bootstrap image tag" >&2; exit 1; }
+BOOTSTRAP_IMAGE="gcr.io/k8s-staging-test-infra/bootstrap:${BOOTSTRAP_TAG}"
+
 run_tests

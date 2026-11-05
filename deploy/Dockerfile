@@ -1,4 +1,4 @@
-FROM registry.hub.docker.com/library/golang:1.25-alpine3.23 AS build
+FROM registry.hub.docker.com/library/golang:1.26-alpine3.23 AS build
 
 # Install build depdencies for all supported arches
 RUN apk --no-cache add bash build-base cmake device-mapper findutils git \
@@ -77,4 +77,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
 
 # Use entrypoint wrapper
 ENTRYPOINT ["/usr/bin/entrypoint.sh"]
-
